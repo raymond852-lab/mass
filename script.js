@@ -217,3 +217,80 @@ function drawScale(value, maxVal, step) {
         const line = document.createElementNS(svgNS, "line");
         line.setAttribute("x1", x1);
         line.setAttribute("y1", y1);
+        line.setAttribute("x2", x2);
+        line.setAttribute("y2", y2);
+        line.setAttribute("stroke", color);
+        line.setAttribute("stroke-width", width);
+        svg.appendChild(line);
+
+        // 如果是大格，加上數字
+        if (isMajor) {
+            // 文字位置稍微往內縮一點
+            const tx = cx + (r - 40) * Math.cos(angleRad);
+            const ty = cy + (r - 40) * Math.sin(angleRad);
+            
+            const text = document.createElementNS(svgNS, "text");
+            text.setAttribute("x", tx);
+            text.setAttribute("y", ty);
+            text.setAttribute("text-anchor", "middle"); 
+            text.setAttribute("dominant-baseline", "middle");
+            text.setAttribute("fill", "#333");
+            text.setAttribute("font-size", "14");
+            text.setAttribute("font-weight", "bold");
+            text.textContent = i;
+            svg.appendChild(text);
+        }
+    }
+
+    // 3. 畫指針 (Needle)
+    // 【重要修正】指針角度也要跟著改
+    const targetPercent = value / maxVal;
+    const targetAngle = 180 + (targetPercent * 180); // 修正這裡
+
+    const needleGroup = document.createElementNS(svgNS, "g");
+    needleGroup.setAttribute("transform", `rotate(${targetAngle}, 100, 130)`);
+
+    // 指針本體 (這裡畫一個指向 360度/0度 方向的箭頭，然後透過 transform 旋轉)
+    // 因為 SVG 預設 0度是右邊，所以我們畫一個向右的箭頭，然後轉到對應位置
+    // 但為了方便對齊，我們通常畫好後再轉。
+    // 這裡我們畫一個指向右邊的箭頭：
+    // 不，因為我們旋轉基準是圓心。
+    // 我們可以畫一個指向 "0度" (右邊) 的指針，然後旋轉它。
+    
+    // 修正：直接畫一個指向圓周的指針形狀
+    // 為了簡單，我們假設指針原本是指向右邊 (0度) 的
+    // M 100 126 L 190 130 L 100 134 Z (這是一個指向右邊的尖三角形)
+    // 但為了配合之前的代碼結構，我們微調一下 path
+    
+    const needle = document.createElementNS(svgNS, "path");
+    // 這裡畫一個指向 "右邊" (X軸正向) 的箭頭，長度 80
+    // 圓心是 100,130
+    // 箭頭尖端: 180, 130
+    // 箭頭尾部: 100, 126 和 100, 134
+    needle.setAttribute("d", "M 100 126 L 180 130 L 100 134 Z");
+    needle.setAttribute("fill", "#FF4757");
+    needleGroup.appendChild(needle);
+
+    // 中心裝飾點
+    const centerDot = document.createElementNS(svgNS, "circle");
+    centerDot.setAttribute("cx", 100);
+    centerDot.setAttribute("cy", 130);
+    centerDot.setAttribute("r", 6);
+    centerDot.setAttribute("fill", "#333");
+    needleGroup.appendChild(centerDot);
+
+    svg.appendChild(needleGroup);
+
+    // 4. 顯示單位 "g"
+    const unitText = document.createElementNS(svgNS, "text");
+    unitText.setAttribute("x", 100);
+    unitText.setAttribute("y", 100);
+    unitText.setAttribute("text-anchor", "middle");
+    unitText.setAttribute("fill", "#89CFF0");
+    unitText.setAttribute("font-size", "24");
+    unitText.setAttribute("font-weight", "bold");
+    unitText.textContent = "g";
+    svg.appendChild(unitText);
+
+    return svg;
+}
