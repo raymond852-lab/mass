@@ -1,11 +1,15 @@
+// 設定一回合有幾題
+const MAX_QUESTIONS = 10;
+
 // 全域變數
 let currentQNumber = 1;
 let score = 0;
-let currentQuestion = {}; // 存放當前生成的題目
+let currentQuestion = {}; 
 
 // 遊戲開始
 function startGame() {
     document.getElementById('start-screen').classList.remove('active');
+    document.getElementById('result-screen').classList.remove('active');
     document.getElementById('game-screen').classList.add('active');
     
     // 重置數據
@@ -19,10 +23,16 @@ function startGame() {
 
 // 產生並載入新題目
 function loadNewQuestion() {
-    // 1. 更新介面上的題號
-    document.getElementById('current-q').innerText = currentQNumber;
+    // 檢查是否到達終點 (例如第 11 題)
+    if (currentQNumber > MAX_QUESTIONS) {
+        showResult();
+        return;
+    }
+
+    // 更新介面上的題號 (顯示 1 / 10)
+    document.getElementById('current-q').innerText = `${currentQNumber} / ${MAX_QUESTIONS}`;
     
-    // 2. 重置回饋與繪圖區
+    // 重置回饋與繪圖區
     const feedback = document.getElementById('feedback');
     feedback.className = 'feedback hidden';
     feedback.innerText = "";
@@ -30,20 +40,19 @@ function loadNewQuestion() {
     const visualArea = document.getElementById('canvas-container');
     visualArea.innerHTML = ''; 
 
-    // 3. 隨機生成題目 (30% 機率是換算題，70% 是讀秤題)
+    // 隨機生成題目 (30% 換算題，70% 讀秤題)
     if (Math.random() < 0.3) {
         currentQuestion = generateConvertQuestion();
         visualArea.innerHTML = '<div style="font-size: 80px; margin: 10px;">⚖️🍬</div>';
     } else {
         currentQuestion = generateScaleQuestion();
-        // 呼叫 SVG 繪圖引擎
         visualArea.appendChild(drawScale(currentQuestion.val, currentQuestion.max, currentQuestion.step));
     }
 
-    // 4. 更新題目文字
+    // 更新題目文字
     document.getElementById('question-text').innerText = currentQuestion.text;
 
-    // 5. 產生選項按鈕 (打亂順序)
+    // 產生選項按鈕 (打亂順序)
     const shuffledOptions = [...currentQuestion.options].sort(() => Math.random() - 0.5);
 
     shuffledOptions.forEach(opt => {
@@ -57,24 +66,21 @@ function loadNewQuestion() {
 
 // 🎲 隨機產生「換算題」
 function generateConvertQuestion() {
-    const isKgToG = Math.random() > 0.5; // 50% 機率 kg轉g
+    const isKgToG = Math.random() > 0.5; 
     let qText, ans, opts, hintText;
 
     if (isKgToG) {
-        // 產生 1~9 的整數，或者 0.5, 1.5 這類小數
         const num = Math.random() > 0.3 ? Math.floor(Math.random() * 9) + 1 : (Math.floor(Math.random() * 5) + 0.5);
         qText = `${num} kg 等於多少 g？`;
         ans = `${num * 1000}g`;
         hintText = "1 kg = 1000 g，也就是加 3 個 0！";
         
-        // 產生干擾選項
         opts = [ans];
-        opts.push(`${num * 100}g`);   // 少一個0
-        opts.push(`${num * 10}g`);    // 少兩個0
-        opts.push(`${num + 1000}g`);  // 亂加的
+        opts.push(`${num * 100}g`);
+        opts.push(`${num * 10}g`);
+        opts.push(`${num + 1000}g`);
     } else {
-        // g 轉 kg (例如 2000g, 500g, 1500g)
-        const num = (Math.floor(Math.random() * 20) + 1) * 500; // 500, 1000, 1500...
+        const num = (Math.floor(Math.random() * 20) + 1) * 500; 
         qText = `${num} g 等於多少 kg？`;
         ans = `${num / 1000}kg`;
         hintText = "g 變 kg 要除以 1000 (切掉3個0)！";
@@ -88,28 +94,21 @@ function generateConvertQuestion() {
     return {
         text: qText,
         answer: ans,
-        options: [...new Set(opts)], // 確保選項不重複
+        options: [...new Set(opts)],
         hint: hintText
     };
 }
 
-// 🎲 隨機產生「讀秤題」 (核心邏輯)
+// 🎲 隨機產生「讀秤題」
 function generateScaleQuestion() {
-    // 1. 隨機決定秤的最大值 (100, 200, 300, 400, 500)
     const maxVals = [100, 200, 300, 400, 500];
     const max = maxVals[Math.floor(Math.random() * maxVals.length)];
-
-    // 2. 隨機決定刻度 (25 或 50)
-    // 如果 max 是 100，我們強制用 25，不然題目太簡單
     const step = (max === 100) ? 25 : (Math.random() > 0.5 ? 25 : 50);
 
-    // 3. 隨機決定目標值 (必須是 step 的倍數，且不超過 max)
     const totalSteps = max / step;
-    // 避免出 0 或 max (太簡單)，所以從 1 到 totalSteps-1
     let randomStepIndex = Math.floor(Math.random() * (totalSteps - 1)) + 1;
     let val = randomStepIndex * step;
 
-    // 4. 產生題目文字
     let text = "指針指在哪裡？";
     if (val === max / 2) text = "剛好在正中間！是多少？";
     else if (val % 100 === 25) text = "注意看！這是一小格 (25g)";
@@ -118,20 +117,16 @@ function generateScaleQuestion() {
     const ans = `${val}g`;
     const hint = `每一小格代表 ${step}g，慢慢加或是用減的！`;
 
-    // 5. 產生干擾選項 (確保不重複且合理)
     let opts = new Set();
     opts.add(ans);
 
     while (opts.size < 4) {
-        // 隨機策略：加減刻度、加減10(混淆視聽)、或是看錯大格
         let type = Math.floor(Math.random() * 3);
         let fakeVal;
+        if (type === 0) fakeVal = val + step; 
+        else if (type === 1) fakeVal = val - step; 
+        else fakeVal = val + 10; 
 
-        if (type === 0) fakeVal = val + step; // 多算一格
-        else if (type === 1) fakeVal = val - step; // 少算一格
-        else fakeVal = val + 10; // 常見錯誤：以為一格是10
-
-        // 確保 fakeVal 是正數且不等於正確答案
         if (fakeVal > 0 && fakeVal !== val) {
             opts.add(`${fakeVal}g`);
         }
@@ -159,11 +154,10 @@ function checkAnswer(selected, correct, hintText) {
         feedback.innerText = "🎉 答對了！";
         feedback.className = "feedback correct";
         
-        // 鎖定按鈕
         const btns = document.querySelectorAll('.option-btn');
         btns.forEach(b => b.disabled = true);
 
-        // 1.5秒後產生下一題 (無盡模式)
+        // 1.5秒後產生下一題
         setTimeout(() => {
             currentQNumber++;
             loadNewQuestion();
@@ -171,28 +165,41 @@ function checkAnswer(selected, correct, hintText) {
     } else {
         feedback.innerText = "❌ 再試試看！\n💡 " + hintText;
         feedback.className = "feedback wrong";
-        // 答錯可以選擇扣分，或是不扣分，這裡保持不扣分但要重選
     }
 }
 
-// 雖然是無盡模式，但我們可以保留一個手動結束的功能 (可選)
-// 這裡保留原有的 showResult 結構，防止報錯，但遊戲邏輯不會主動呼叫它
+// 🏆 顯示結果畫面 (修正版)
 function showResult() {
-    alert(`遊戲結束！你一共答對了 ${currentQNumber} 題，獲得 ${score} 分！`);
-    location.reload();
+    document.getElementById('game-screen').classList.remove('active');
+    document.getElementById('result-screen').classList.add('active');
+    
+    document.getElementById('final-score').innerText = score;
+    
+    // 根據分數給予不同評語
+    let comment = "";
+    if (score === MAX_QUESTIONS * 10) comment = "👑 完美！重量大師就是你！";
+    else if (score >= MAX_QUESTIONS * 8) comment = "🌟 太厲害了！幾乎全對！";
+    else if (score >= MAX_QUESTIONS * 6) comment = "👍 很棒喔！繼續加油！";
+    else comment = "💪 沒關係，多練習幾次就會了！";
+    
+    document.getElementById('comment').innerText = comment;
+    
+    // 注意：HTML 中的 "再玩一次" 按鈕已經綁定 onclick="location.reload()"
+    // 為了更好的體驗，我們可以改成直接呼叫 startGame() 而不重新整理網頁
+    // 這樣切換比較順暢
+    const restartBtn = document.querySelector('.restart-btn');
+    restartBtn.onclick = startGame; 
+    restartBtn.innerText = "再挑戰一輪新題目！🔄";
 }
 
-// 🎨 SVG 畫秤引擎 (保持修正後的正確版本)
+// 🎨 SVG 畫秤引擎 (保持不變)
 function drawScale(value, maxVal, step) {
     const svgNS = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(svgNS, "svg");
     svg.setAttribute("viewBox", "0 0 200 160"); 
     
-    const cx = 100; 
-    const cy = 130; 
-    const r = 100;  
+    const cx = 100; const cy = 130; const r = 100;  
 
-    // 外框 (180度 -> 360度)
     const arc = document.createElementNS(svgNS, "path");
     arc.setAttribute("d", "M 10 130 A 90 90 0 0 1 190 130");
     arc.setAttribute("fill", "none");
@@ -201,7 +208,6 @@ function drawScale(value, maxVal, step) {
     arc.setAttribute("stroke-linecap", "round");
     svg.appendChild(arc);
 
-    // 刻度
     for (let i = 0; i <= maxVal; i += step) {
         const percent = i / maxVal;
         const angleDeg = 180 + (percent * 180);
@@ -218,21 +224,16 @@ function drawScale(value, maxVal, step) {
         const y2 = cy + (r - 15 - tickLen) * Math.sin(angleRad);
 
         const line = document.createElementNS(svgNS, "line");
-        line.setAttribute("x1", x1);
-        line.setAttribute("y1", y1);
-        line.setAttribute("x2", x2);
-        line.setAttribute("y2", y2);
-        line.setAttribute("stroke", color);
-        line.setAttribute("stroke-width", width);
+        line.setAttribute("x1", x1); line.setAttribute("y1", y1);
+        line.setAttribute("x2", x2); line.setAttribute("y2", y2);
+        line.setAttribute("stroke", color); line.setAttribute("stroke-width", width);
         svg.appendChild(line);
 
         if (isMajor) {
             const tx = cx + (r - 40) * Math.cos(angleRad);
             const ty = cy + (r - 40) * Math.sin(angleRad);
-            
             const text = document.createElementNS(svgNS, "text");
-            text.setAttribute("x", tx);
-            text.setAttribute("y", ty);
+            text.setAttribute("x", tx); text.setAttribute("y", ty);
             text.setAttribute("text-anchor", "middle"); 
             text.setAttribute("dominant-baseline", "middle");
             text.setAttribute("fill", "#333");
@@ -243,31 +244,23 @@ function drawScale(value, maxVal, step) {
         }
     }
 
-    // 指針
     const targetPercent = value / maxVal;
     const targetAngle = 180 + (targetPercent * 180); 
 
     const needleGroup = document.createElementNS(svgNS, "g");
     needleGroup.setAttribute("transform", `rotate(${targetAngle}, 100, 130)`);
-
     const needle = document.createElementNS(svgNS, "path");
     needle.setAttribute("d", "M 100 126 L 180 130 L 100 134 Z");
     needle.setAttribute("fill", "#FF4757");
     needleGroup.appendChild(needle);
-
     const centerDot = document.createElementNS(svgNS, "circle");
-    centerDot.setAttribute("cx", 100);
-    centerDot.setAttribute("cy", 130);
-    centerDot.setAttribute("r", 6);
-    centerDot.setAttribute("fill", "#333");
+    centerDot.setAttribute("cx", 100); centerDot.setAttribute("cy", 130);
+    centerDot.setAttribute("r", 6); centerDot.setAttribute("fill", "#333");
     needleGroup.appendChild(centerDot);
-
     svg.appendChild(needleGroup);
 
-    // 單位 g
     const unitText = document.createElementNS(svgNS, "text");
-    unitText.setAttribute("x", 100);
-    unitText.setAttribute("y", 100);
+    unitText.setAttribute("x", 100); unitText.setAttribute("y", 100);
     unitText.setAttribute("text-anchor", "middle");
     unitText.setAttribute("fill", "#89CFF0");
     unitText.setAttribute("font-size", "24");
