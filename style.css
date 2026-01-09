@@ -1,0 +1,99 @@
+:root {
+    --bg-blue: #89CFF0;      /* Cinnamoroll 天空藍 */
+    --card-white: #ffffff;
+    --btn-blue: #4D96FF;
+    --btn-hover: #6BCB77;
+    --text-color: #555;
+    --accent-red: #FF6B6B;
+}
+
+body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background-color: var(--bg-blue);
+    /* 讓 Cinnamoroll 背景更可愛 */
+    background-image: radial-gradient(#fff 10%, transparent 10%), radial-gradient(#fff 10%, transparent 10%);
+    background-position: 0 0, 30px 30px;
+    background-size: 60px 60px;
+    
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+}
+
+.app-container {
+    background: var(--card-white);
+    width: 90%;
+    max-width: 450px;
+    border-radius: 30px;
+    padding: 25px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    text-align: center;
+    border: 8px solid #E0F7FA;
+    position: relative;
+}
+
+/* 畫面切換控制 */
+.screen { display: none; }
+.screen.active { display: block; animation: fadeIn 0.6s ease-out; }
+
+/* 標題與文字 */
+.title { color: var(--btn-blue); margin-top: 0; font-family: 'Fredoka One', cursive; text-shadow: 2px 2px 0 #eee;}
+.q-text { color: #333; font-size: 1.4rem; margin: 10px 0; }
+.mascot-bounce { font-size: 80px; margin: 15px 0; animation: bounce 2s infinite; }
+.intro-box { background: #f9f9f9; padding: 15px; border-radius: 15px; margin: 15px 0; font-size: 1rem; color: #666; }
+
+/* 頂部資訊列 */
+.header { display: flex; justify-content: space-between; margin-bottom: 15px; }
+.badge { background: #E0F7FA; color: var(--btn-blue); padding: 8px 15px; border-radius: 20px; font-weight: bold; }
+
+/* 按鈕樣式 */
+.btn {
+    background: var(--btn-blue);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.3rem;
+    border-radius: 50px;
+    cursor: pointer;
+    width: 100%;
+    font-weight: bold;
+    box-shadow: 0 5px 0 #2a75bb;
+    transition: all 0.1s;
+}
+.btn:active { transform: translateY(5px); box-shadow: none; }
+
+/* 選項按鈕網格 */
+.options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 20px;
+}
+.option-btn {
+    background: #fff;
+    color: #444;
+    border: 3px solid #eee;
+    padding: 15px 5px;
+    border-radius: 15px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s;
+}
+.option-btn:hover { background: #f0fbff; border-color: var(--btn-blue); }
+
+/* 提示回饋 */
+.feedback { margin-top: 15px; padding: 12px; border-radius: 12px; font-weight: bold; animation: popIn 0.3s; }
+.feedback.correct { background: #d4edda; color: #155724; border: 2px solid #c3e6cb; }
+.feedback.wrong { background: #fff3cd; color: #856404; border: 2px solid #ffeeba; }
+
+/* SVG 繪圖區 */
+svg { width: 100%; height: auto; max-height: 220px; margin-top: 10px; }
+.final-score { font-size: 4rem; color: var(--accent-red); font-weight: bold; margin: 10px 0; }
+
+/* 動畫定義 */
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes popIn { from { transform: scale(0.8); } to { transform: scale(1); } }
