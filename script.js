@@ -1,4 +1,4 @@
-// 題庫設計：混合 Level 1 (換算/整數), Level 2 (50g), Level 3 (25g)
+// 題庫設計：混合 Level 1 (換算), Level 2 (50g), Level 3 (25g)
 const questions = [
     // --- Level 1: 基礎換算 ---
     {
@@ -6,7 +6,7 @@ const questions = [
         text: "1 kg 等於多少 g？",
         answer: "1000g",
         options: ["100g", "1000g", "10g", "500g"],
-        hint: "口訣：1 公斤加 3 個 0！"
+        hint: "口訣：1 公斤 = 1000 克 (加3個0)！"
     },
     {
         type: "convert",
@@ -17,26 +17,28 @@ const questions = [
     },
     
     // --- Level 2: 讀秤 (50g) ---
+    // 修正後：0在左，100在上，200在右。150在右上方。
     {
         type: "scale",
         text: "指針指在哪裡？(注意這是一半)",
         val: 150, max: 200, step: 50, 
         answer: "150g",
         options: ["100g", "150g", "125g", "200g"],
-        hint: "100 到 200 的正中間是 150 喔！"
+        hint: "100(上方) 到 200(右邊) 的正中間！"
     },
     {
-        // 修正後的邏輯：200 會在正上方，250 會在右邊一點點
+        // 修正後：200在上，400在右。250在過了上方一點點。
         type: "scale",
         text: "過了 200，在中間！",
         val: 250, max: 400, step: 50,
         answer: "250g",
         options: ["200g", "250g", "300g", "205g"],
-        hint: "指針過了正中間的 200，指向下一格！"
+        hint: "指針過了正中間的 200！"
     },
     
     // --- Level 3: 魔王題 (25g) ---
-    // 這裡我們把最大值設為 100 或 200，讓刻度更清楚
+    // 0-100範圍。0左, 50上, 100右。
+    // 25g 會指在左上方 (9點與12點中間)
     {
         type: "scale",
         text: "【魔王題】指針在第一小格！",
@@ -51,9 +53,10 @@ const questions = [
         val: 75, max: 100, step: 25,
         answer: "75g",
         options: ["50g", "75g", "80g", "60g"],
-        hint: "25, 50, 75... 數數看！"
+        hint: "50(上方) 和 100(右邊) 的中間！"
     },
     {
+        // 0-200範圍。100在上。125在過了上方的第一格。
         type: "scale",
         text: "指針過了 100，在第一小格",
         val: 125, max: 200, step: 25,
@@ -89,14 +92,12 @@ const questions = [
 let currentQIndex = 0;
 let score = 0;
 
-// 遊戲開始
 function startGame() {
     document.getElementById('start-screen').classList.remove('active');
     document.getElementById('game-screen').classList.add('active');
     loadQuestion();
 }
 
-// 載入題目
 function loadQuestion() {
     if (currentQIndex >= questions.length) {
         showResult();
@@ -115,16 +116,14 @@ function loadQuestion() {
     const visualArea = document.getElementById('canvas-container');
     visualArea.innerHTML = ''; 
 
-    // 判斷類型：畫圖 或 顯示文字
     if (q.type === 'scale') {
         visualArea.appendChild(drawScale(q.val, q.max, q.step));
     } else {
         visualArea.innerHTML = '<div style="font-size: 80px; margin: 10px;">⚖️🍬</div>';
     }
 
-    // 產生選項按鈕
+    // 選項亂數排列
     const shuffledOptions = [...q.options].sort(() => Math.random() - 0.5);
-
     shuffledOptions.forEach(opt => {
         const btn = document.createElement('button');
         btn.className = 'option-btn';
@@ -134,7 +133,6 @@ function loadQuestion() {
     });
 }
 
-// 檢查答案
 function checkAnswer(selected, correct, hintText) {
     const feedback = document.getElementById('feedback');
     feedback.classList.remove('hidden');
@@ -171,126 +169,6 @@ function showResult() {
     document.getElementById('comment').innerText = comment;
 }
 
-// 🎨 修正後的 SVG 畫秤引擎
+// 🎨 修正後的 SVG 畫秤引擎 (座標系對齊版)
 function drawScale(value, maxVal, step) {
-    const svgNS = "http://www.w3.org/2000/svg";
-    const svg = document.createElementNS(svgNS, "svg");
-    svg.setAttribute("viewBox", "0 0 200 160"); 
-    
-    const cx = 100; // 圓心 X
-    const cy = 130; // 圓心 Y
-    const r = 100;  // 半徑
-
-    // 1. 畫秤的外框 (藍色半圓)
-    const arc = document.createElementNS(svgNS, "path");
-    // 從左 (10, 130) 畫到右 (190, 130)
-    arc.setAttribute("d", "M 10 130 A 90 90 0 0 1 190 130");
-    arc.setAttribute("fill", "none");
-    arc.setAttribute("stroke", "#4D96FF");
-    arc.setAttribute("stroke-width", "5");
-    arc.setAttribute("stroke-linecap", "round");
-    svg.appendChild(arc);
-
-    // 2. 畫刻度 (Tick Marks)
-    // 邏輯修正：角度從 180度 (左) 到 360度 (右)
-    for (let i = 0; i <= maxVal; i += step) {
-        const percent = i / maxVal;
-        
-        // 【重要修正】這裡的角度計算改了
-        // percent 0 -> 180度 (左邊, 9點鐘)
-        // percent 0.5 -> 270度 (上面, 12點鐘)
-        // percent 1 -> 360度 (右邊, 3點鐘)
-        const angleDeg = 180 + (percent * 180);
-        const angleRad = (angleDeg * Math.PI) / 180;
-
-        const isMajor = (i % 100 === 0);
-        const tickLen = isMajor ? 15 : 8; 
-        const color = isMajor ? "#FF6B6B" : "#888"; 
-        const width = isMajor ? 3 : 1;
-
-        // 計算線條座標
-        const x1 = cx + (r - 15) * Math.cos(angleRad);
-        const y1 = cy + (r - 15) * Math.sin(angleRad);
-        const x2 = cx + (r - 15 - tickLen) * Math.cos(angleRad);
-        const y2 = cy + (r - 15 - tickLen) * Math.sin(angleRad);
-
-        const line = document.createElementNS(svgNS, "line");
-        line.setAttribute("x1", x1);
-        line.setAttribute("y1", y1);
-        line.setAttribute("x2", x2);
-        line.setAttribute("y2", y2);
-        line.setAttribute("stroke", color);
-        line.setAttribute("stroke-width", width);
-        svg.appendChild(line);
-
-        // 如果是大格，加上數字
-        if (isMajor) {
-            // 文字位置稍微往內縮一點
-            const tx = cx + (r - 40) * Math.cos(angleRad);
-            const ty = cy + (r - 40) * Math.sin(angleRad);
-            
-            const text = document.createElementNS(svgNS, "text");
-            text.setAttribute("x", tx);
-            text.setAttribute("y", ty);
-            text.setAttribute("text-anchor", "middle"); 
-            text.setAttribute("dominant-baseline", "middle");
-            text.setAttribute("fill", "#333");
-            text.setAttribute("font-size", "14");
-            text.setAttribute("font-weight", "bold");
-            text.textContent = i;
-            svg.appendChild(text);
-        }
-    }
-
-    // 3. 畫指針 (Needle)
-    // 【重要修正】指針角度也要跟著改
-    const targetPercent = value / maxVal;
-    const targetAngle = 180 + (targetPercent * 180); // 修正這裡
-
-    const needleGroup = document.createElementNS(svgNS, "g");
-    needleGroup.setAttribute("transform", `rotate(${targetAngle}, 100, 130)`);
-
-    // 指針本體 (這裡畫一個指向 360度/0度 方向的箭頭，然後透過 transform 旋轉)
-    // 因為 SVG 預設 0度是右邊，所以我們畫一個向右的箭頭，然後轉到對應位置
-    // 但為了方便對齊，我們通常畫好後再轉。
-    // 這裡我們畫一個指向右邊的箭頭：
-    // 不，因為我們旋轉基準是圓心。
-    // 我們可以畫一個指向 "0度" (右邊) 的指針，然後旋轉它。
-    
-    // 修正：直接畫一個指向圓周的指針形狀
-    // 為了簡單，我們假設指針原本是指向右邊 (0度) 的
-    // M 100 126 L 190 130 L 100 134 Z (這是一個指向右邊的尖三角形)
-    // 但為了配合之前的代碼結構，我們微調一下 path
-    
-    const needle = document.createElementNS(svgNS, "path");
-    // 這裡畫一個指向 "右邊" (X軸正向) 的箭頭，長度 80
-    // 圓心是 100,130
-    // 箭頭尖端: 180, 130
-    // 箭頭尾部: 100, 126 和 100, 134
-    needle.setAttribute("d", "M 100 126 L 180 130 L 100 134 Z");
-    needle.setAttribute("fill", "#FF4757");
-    needleGroup.appendChild(needle);
-
-    // 中心裝飾點
-    const centerDot = document.createElementNS(svgNS, "circle");
-    centerDot.setAttribute("cx", 100);
-    centerDot.setAttribute("cy", 130);
-    centerDot.setAttribute("r", 6);
-    centerDot.setAttribute("fill", "#333");
-    needleGroup.appendChild(centerDot);
-
-    svg.appendChild(needleGroup);
-
-    // 4. 顯示單位 "g"
-    const unitText = document.createElementNS(svgNS, "text");
-    unitText.setAttribute("x", 100);
-    unitText.setAttribute("y", 100);
-    unitText.setAttribute("text-anchor", "middle");
-    unitText.setAttribute("fill", "#89CFF0");
-    unitText.setAttribute("font-size", "24");
-    unitText.setAttribute("font-weight", "bold");
-    unitText.textContent = "g";
-    svg.appendChild(unitText);
-
-    return svg;
-}
+    const svgNS = "http://www
