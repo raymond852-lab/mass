@@ -171,4 +171,111 @@ function showResult() {
 
 // 🎨 修正後的 SVG 畫秤引擎 (座標系對齊版)
 function drawScale(value, maxVal, step) {
-    const svgNS = "http://www
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("viewBox", "0 0 200 160"); 
+    
+    const cx = 100; // 圓心 X
+    const cy = 130; // 圓心 Y
+    const r = 100;  // 半徑
+
+    // 1. 畫秤的外框 (藍色半圓)
+    // M 10 130 (左) -> A ... -> 190 130 (右)
+    // 這是一個從 180度 到 360度 的弧形
+    const arc = document.createElementNS(svgNS, "path");
+    arc.setAttribute("d", "M 10 130 A 90 90 0 0 1 190 130");
+    arc.setAttribute("fill", "none");
+    arc.setAttribute("stroke", "#4D96FF");
+    arc.setAttribute("stroke-width", "5");
+    arc.setAttribute("stroke-linecap", "round");
+    svg.appendChild(arc);
+
+    // 2. 畫刻度 (Tick Marks)
+    // 我們的邏輯：i=0 是左邊(180度)，i=max 是右邊(360度)
+    for (let i = 0; i <= maxVal; i += step) {
+        const percent = i / maxVal;
+        
+        // 【關鍵修正】角度計算
+        // 0% -> 180度
+        // 100% -> 360度
+        const angleDeg = 180 + (percent * 180);
+        const angleRad = (angleDeg * Math.PI) / 180;
+
+        const isMajor = (i % 100 === 0);
+        const tickLen = isMajor ? 15 : 8; 
+        const color = isMajor ? "#FF6B6B" : "#888"; 
+        const width = isMajor ? 3 : 1;
+
+        // 計算線條座標 (外點 -> 內點)
+        const x1 = cx + (r - 15) * Math.cos(angleRad);
+        const y1 = cy + (r - 15) * Math.sin(angleRad);
+        const x2 = cx + (r - 15 - tickLen) * Math.cos(angleRad);
+        const y2 = cy + (r - 15 - tickLen) * Math.sin(angleRad);
+
+        const line = document.createElementNS(svgNS, "line");
+        line.setAttribute("x1", x1);
+        line.setAttribute("y1", y1);
+        line.setAttribute("x2", x2);
+        line.setAttribute("y2", y2);
+        line.setAttribute("stroke", color);
+        line.setAttribute("stroke-width", width);
+        svg.appendChild(line);
+
+        // 數字標籤
+        if (isMajor) {
+            const tx = cx + (r - 40) * Math.cos(angleRad);
+            const ty = cy + (r - 40) * Math.sin(angleRad);
+            
+            const text = document.createElementNS(svgNS, "text");
+            text.setAttribute("x", tx);
+            text.setAttribute("y", ty);
+            text.setAttribute("text-anchor", "middle"); 
+            text.setAttribute("dominant-baseline", "middle");
+            text.setAttribute("fill", "#333");
+            text.setAttribute("font-size", "14");
+            text.setAttribute("font-weight", "bold");
+            text.textContent = i;
+            svg.appendChild(text);
+        }
+    }
+
+    // 3. 畫指針 (Needle)
+    // 【關鍵修正】指針角度必須與刻度一致
+    const targetPercent = value / maxVal;
+    const targetAngle = 180 + (targetPercent * 180); 
+
+    const needleGroup = document.createElementNS(svgNS, "g");
+    // 設定旋轉
+    needleGroup.setAttribute("transform", `rotate(${targetAngle}, 100, 130)`);
+
+    // 畫一個指向 "右邊 (0度/360度)" 的指針
+    // 因為我們已經用 rotate 轉到正確角度了，所以這裡只要畫一個標準向右的指針即可
+    // 圓心在 (100, 130)。向右伸出的三角形。
+    const needle = document.createElementNS(svgNS, "path");
+    needle.setAttribute("d", "M 100 126 L 180 130 L 100 134 Z");
+    needle.setAttribute("fill", "#FF4757");
+    needleGroup.appendChild(needle);
+
+    // 中心裝飾點
+    const centerDot = document.createElementNS(svgNS, "circle");
+    centerDot.setAttribute("cx", 100);
+    centerDot.setAttribute("cy", 130);
+    centerDot.setAttribute("r", 6);
+    centerDot.setAttribute("fill", "#333");
+    needleGroup.appendChild(centerDot);
+
+    svg.appendChild(needleGroup);
+
+    // 4. 顯示單位 "g"
+    const unitText = document.createElementNS(svgNS, "text");
+    unitText.setAttribute("x", 100);
+    unitText.setAttribute("y", 100);
+    unitText.setAttribute("text-anchor", "middle");
+    unitText.setAttribute("fill", "#89CFF0");
+    unitText.setAttribute("font-size", "24");
+    unitText.setAttribute("font-weight", "bold");
+    unitText.textContent = "g";
+    svg.appendChild(unitText);
+
+    return svg;
+}
